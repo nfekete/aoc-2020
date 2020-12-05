@@ -17,13 +17,13 @@ object Day01 {
 
         set.mapNotNull { first ->
             set.findElementsWithSum(year - first)
-                ?.let { it.prepend(first) }
+                ?.let { pair -> pair.prepend(first) }
         }.first().run { printSumAndProduct() }
     }
 
     private fun Set<Long>.findElementsWithSum(sum: Long) =
-        find { contains(sum - it) }
-            ?.let { it to (sum - it) }
+        find { element -> contains(sum - element) }
+            ?.let { element -> element to (sum - element) }
 
     private fun <A, B, C> Pair<B, C>.prepend(element: A) = Triple(element, first, second)
 
