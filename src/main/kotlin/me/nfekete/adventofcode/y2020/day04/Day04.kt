@@ -4,24 +4,23 @@ import me.nfekete.adventofcode.y2020.common.classpathFile
 
 object Day04 {
 
-    private val requiredKeys = setOf("ecl", "pid", "eyr", "hcl", "byr", "iyr", "hgt")
+    internal enum class Key { ecl, pid, eyr, hcl, byr, iyr, hgt, cid }
+    private val requiredKeys = Key.values().toSet().minus(Key.cid)
     private val validEyeColors = setOf("amb", "blu", "brn", "gry", "grn", "hzl", "oth")
 
     @JvmStatic
-    fun main(args: Array<String>) {
-        val passportCandidates = loadPassports("input.txt")
+    fun main(args: Array<String>) =
+        loadPassports("input.txt").filterIncomplete().run {
+            println("Number of passwords having all required fields in the batch: $size")
+            this
+        }.filterInvalid().run {
+            println("Number of valid passwords in the batch: $size")
+        }
 
-        val completePassports = passportCandidates.filterIncomplete()
-        val validPassports = completePassports.filterInvalid()
-
-        println("Number of passwords having all required fields in the batch: ${completePassports.count()}")
-        println("Number of valid passwords in the batch: ${validPassports.count()}")
-    }
-
-    internal fun List<Map<String, String>>.filterInvalid() =
+    internal fun List<Map<Key, String>>.filterInvalid() =
         filter { passport -> passport.entries.all { isValidField(it.toPair()) } }
 
-    private fun List<Map<String, String>>.filterIncomplete() =
+    private fun List<Map<Key, String>>.filterIncomplete() =
         filter { it.keys.containsAll(requiredKeys) }
 
     internal fun loadPassports(path: String) = classpathFile(path)
@@ -32,18 +31,17 @@ object Day04 {
                 .toList()
         }
 
-    internal fun isValidField(pair: Pair<String, String>): Boolean {
+    internal fun isValidField(pair: Pair<Key, String>): Boolean {
         val (key, value) = pair
         return when (key) {
-            "byr" -> value.isNumberInRange(1920..2002)
-            "iyr" -> value.isNumberInRange(2010..2020)
-            "eyr" -> value.isNumberInRange(2020..2030)
-            "hgt" -> isValidHeight(value)
-            "hcl" -> value.matches("^#[0-9a-f]{6}$".toRegex())
-            "ecl" -> value in validEyeColors
-            "pid" -> value.matches("^[0-9]{9}$".toRegex())
-            "cid" -> true
-            else -> false
+            Key.byr -> value.isNumberInRange(1920..2002)
+            Key.iyr -> value.isNumberInRange(2010..2020)
+            Key.eyr -> value.isNumberInRange(2020..2030)
+            Key.hgt -> isValidHeight(value)
+            Key.hcl -> value.matches("^#[0-9a-f]{6}$".toRegex())
+            Key.ecl -> value in validEyeColors
+            Key.pid -> value.matches("^[0-9]{9}$".toRegex())
+            Key.cid -> true
         }
     }
 
@@ -61,6 +59,7 @@ object Day04 {
     private fun splitToKeyValuePairs(string: String) =
         string.splitToSequence(" ")
             .map { keyValuePair -> keyValuePair.splitByDelimiter(':') }
+            .map { (key, value) -> Key.valueOf(key) to value }
 
     private fun String.splitByDelimiter(delimiter: Char) =
         indexOf(delimiter)
