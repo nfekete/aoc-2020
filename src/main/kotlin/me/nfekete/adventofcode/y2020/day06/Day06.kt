@@ -20,9 +20,10 @@ object Day06 {
             .map { group ->
                 val answerGroups = group.flatMap { personYesAnswers ->
                     personYesAnswers.asSequence()
-                }.groupBy { it }
-                val countOfAnswersThatWereAllYes = answerGroups.values.filter { it.size == group.size }.count()
-                countOfAnswersThatWereAllYes
+                }.groupingBy { it }
+                    .eachCount()
+                val countOfAnswersThatYesByAllMembers = answerGroups.values.filter { it == group.size }.count()
+                countOfAnswersThatYesByAllMembers
             }.sum()
         println("Sum of the count of answers that were all yes from each group: $sumAllYes")
     }
