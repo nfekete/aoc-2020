@@ -2,16 +2,15 @@ package me.nfekete.adventofcode.y2020.day07
 
 import me.nfekete.adventofcode.y2020.common.classpathFile
 
+data class ColorAndNumber(val color: String, val number: Int)
+
 object Day07 {
 
     private val colorExtractorRegex = "^((?<number>\\d+) )?(?<color>\\p{Lower}+ \\p{Lower}+) bags?\\.?$".toRegex()
-
-    data class ColorAndNumber(val color: String, val number: Int)
+    private const val ourColor = "shiny gold"
 
     @JvmStatic
     fun main(args: Array<String>) {
-        val ourColor = "shiny gold"
-
         val mandatoryContainment = classpathFile("input.txt").readLines()
             .map { line -> line.split("contain", limit = 2) }
             .map { array ->
@@ -35,12 +34,8 @@ object Day07 {
     private fun String.extractColorAndNumber() =
         colorExtractorRegex.matchEntire(this)?.groups?.run {
             val color = get("color")?.value!!
-            val numberString = get("number")?.value
-            if (numberString != null) {
-                ColorAndNumber(color, numberString.toInt())
-            } else {
-                null
-            }
+            val number = get("number")?.value?.toInt() ?: return@run null
+            ColorAndNumber(color, number)
         }
 
     private fun Map<String, Set<String>>.possibleContainers(start: String, includeStart: Boolean = false): Set<String> =
