@@ -9,14 +9,10 @@ object Day10 {
         val input = classpathFile("input.txt").readLines().map { it.toInt() }
         val extendedInput = (listOf(0) + input.sorted() + (3 + input.maxOrNull()!!))
         val deltas = extendedInput.windowed(2, 1, partialWindows = false).map { (a, b) -> b - a }
-        println("Extended input: $extendedInput")
-        println("Joltage differences when applied in increased order: $deltas")
-        println("Sum of the joltage differences: ${deltas.sum()}")
         (deltas.count { it == 1 } to deltas.count { it == 3 })
             .let { (a, b) -> println("Nr of 1-differences * Nr of 3 differences: $a * $b = ${a * b}") }
-
         val numberOfArrangements = extendedInput.numberOfArrangements()
-        println(numberOfArrangements)
+        println("Number of different arrangements: $numberOfArrangements")
     }
 }
 
