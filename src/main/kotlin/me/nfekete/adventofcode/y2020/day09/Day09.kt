@@ -34,10 +34,8 @@ object Day09 {
     }
 
     private fun List<Long>.findContiguousRangeWithSum(sum: Long): List<Long> {
-        return indices.flatMap { a -> (a + 1 until size).map { b -> a..b } }
-            .asSequence()
-            .map { range -> range.map { index -> this[index] } }
-            .map { list -> list to list.sum() }
+        val sums = runningFold(0L) { acc, value -> acc + value }
+        return indices.flatMap { a -> (a + 1 until size).map { b -> subList(a, b + 1) to sums[b + 1] - sums[a] } }
             .first { (_, listSum) -> sum == listSum }
             .first
     }
