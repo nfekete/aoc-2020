@@ -49,27 +49,17 @@ class SeatMap(val grid: Array<CharArray>) {
 
     private fun Array<CharArray>.copy() = Array(size) { row -> this[row].copyOf() }
 
-    private fun makeRound(simulationStrategy: SimulationStrategy): Pair<Boolean, SeatMap> {
-        val newGrid = grid.copy()
-        var changed = false
-        for (row in rows) {
-            for (column in columns) {
-                val square = grid[row][column]
-                val surroundingOccupancy = simulationStrategy.surroundingOccupancy(this, row, column)
-                when {
-                    square == SEAT_EMPTY && surroundingOccupancy == 0 -> {
-                        newGrid[row][column] = SEAT_OCCUPIED
-                        changed = true
-                    }
-                    square == SEAT_OCCUPIED && simulationStrategy.shouldFreeSeat(surroundingOccupancy) -> {
-                        newGrid[row][column] = SEAT_EMPTY
-                        changed = true
-                    }
-                }
+    private fun makeRound(simulationStrategy: SimulationStrategy): Pair<Boolean, SeatMap> = rows.map { row ->
+        columns.map { column ->
+            val square = grid[row][column]
+            val surroundingOccupancy = simulationStrategy.surroundingOccupancy(this, row, column)
+            when {
+                square == SEAT_EMPTY && surroundingOccupancy == 0 -> SEAT_OCCUPIED to true
+                square == SEAT_OCCUPIED && simulationStrategy.shouldFreeSeat(surroundingOccupancy) -> SEAT_EMPTY to true
+                else -> square to false
             }
-        }
-        return changed to SeatMap(newGrid)
-    }
+        }.unzip().let { (newRow, changed) -> newRow.toCharArray() to changed.any { it } }
+    }.unzip().let { (newGrid, changed) -> changed.any { it } to SeatMap(newGrid.toTypedArray()) }
 
     fun simulate(simulationStrategy: SimulationStrategy): SeatMap {
         return generateSequence(true to this) { (_, newSeatMap) -> newSeatMap.makeRound(simulationStrategy) }
