@@ -7,6 +7,9 @@ private const val SEAT_EMPTY = 'L'
 private const val SEAT_OCCUPIED = '#'
 private val Char.isOccupied get() = this == SEAT_OCCUPIED
 private val Char.isFloor get() = this == FLOOR
+private val directions = (-1..1).flatMap { dy ->
+    (-1..1).map { dx -> dy to dx }
+}.filter { (dy, dx) -> !(dy == 0 && dx == 0) }
 
 interface SimulationStrategy {
     fun surroundingOccupancy(seatMap: SeatMap, row: Int, column: Int): Int
@@ -14,38 +17,24 @@ interface SimulationStrategy {
 }
 
 class Part1 : SimulationStrategy {
-    override fun surroundingOccupancy(seatMap: SeatMap, row: Int, column: Int): Int {
-        var occupied = 0
-        for (y in (row - 1).coerceAtLeast(0)..(row + 1).coerceAtMost(seatMap.maxRows - 1)) {
-            for (x in (column - 1).coerceAtLeast(0)..(column + 1).coerceAtMost(seatMap.maxColumns - 1)) {
-                if (y == row && x == column) {
-                    continue
-                }
-                if (seatMap.grid[y][x].isOccupied) {
-                    occupied++
-                }
-            }
-        }
-        return occupied
-    }
+    override fun surroundingOccupancy(seatMap: SeatMap, row: Int, column: Int): Int =
+        directions.map { (dy, dx) -> row + dy to column + dx }
+            .filter { (row, column) -> row in seatMap.rows && column in seatMap.columns }
+            .map { (row, column) -> seatMap.grid[row][column] }
+            .count { it.isOccupied }
 
     override fun shouldFreeSeat(surroundingOccupancy: Int): Boolean = surroundingOccupancy >= 4
 }
 
 class Part2 : SimulationStrategy {
-    private val directions = (-1..1).flatMap { dy ->
-        (-1..1).map { dx -> dy to dx }
-    }.filter { (dy, dx) -> !(dy == 0 && dx == 0) }
-
     override fun surroundingOccupancy(seatMap: SeatMap, row: Int, column: Int): Int {
-        val sightOfSeats = directions.map { (dy, dx) ->
+        return directions.map { (dy, dx) -> //in all directions
             generateSequence(row to column) { (y, x) -> y + dy to x + dx }
                 .drop(1) // the first element is the square itself
                 .takeWhile { (y, x) -> y in seatMap.rows && x in seatMap.columns } //stay within the grid
                 .map { (y, x) -> seatMap.grid[y][x] } //what do we see there?
                 .firstOrNull { !it.isFloor } //we don't see through objects
-        }
-        return sightOfSeats.count { it?.isOccupied ?: false } //count the number of occupied seats we see
+        }.count { it?.isOccupied ?: false } //count the number of occupied seats we see
     }
 
     override fun shouldFreeSeat(surroundingOccupancy: Int): Boolean = surroundingOccupancy >= 5
