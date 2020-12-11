@@ -2,27 +2,26 @@ package me.nfekete.adventofcode.y2020.day11
 
 import me.nfekete.adventofcode.y2020.common.classpathFile
 
-private val FLOOR = '.'
-private val SEAT_EMPTY = 'L'
-private val SEAT_OCCUPIED = '#'
+private const val FLOOR = '.'
+private const val SEAT_EMPTY = 'L'
+private const val SEAT_OCCUPIED = '#'
+private val Char.isOccupied get() = this == SEAT_OCCUPIED
+private val Char.isFloor get() = this == FLOOR
 
-data class SeatMap(val grid: Array<CharArray>) {
-    private val maxRows = grid.size
-    private val maxColumns = grid.first().size
-    private val rows = 0 until maxRows
-    private val columns = 0 until maxColumns
-    override fun toString() = grid.joinToString("\n") { row -> row.joinToString("") }
+interface SimulationStrategy {
+    fun surroundingOccupancy(seatMap: SeatMap, row: Int, column: Int): Int
+    fun shouldFreeSeat(surroundingOccupancy: Int): Boolean
+}
 
-    private fun Array<CharArray>.copy() = Array(size) { row -> this[row].copyOf() }
-
-    private fun occupiedAdjacent(row: Int, column: Int): Int {
+class Part1 : SimulationStrategy {
+    override fun surroundingOccupancy(seatMap: SeatMap, row: Int, column: Int): Int {
         var occupied = 0
-        for (y in (row - 1).coerceAtLeast(0)..(row + 1).coerceAtMost(maxRows - 1)) {
-            for (x in (column - 1).coerceAtLeast(0)..(column + 1).coerceAtMost(maxColumns - 1)) {
+        for (y in (row - 1).coerceAtLeast(0)..(row + 1).coerceAtMost(seatMap.maxRows - 1)) {
+            for (x in (column - 1).coerceAtLeast(0)..(column + 1).coerceAtMost(seatMap.maxColumns - 1)) {
                 if (y == row && x == column) {
                     continue
                 }
-                if (grid[y][x] == SEAT_OCCUPIED) {
+                if (seatMap.grid[y][x].isOccupied) {
                     occupied++
                 }
             }
@@ -30,19 +29,50 @@ data class SeatMap(val grid: Array<CharArray>) {
         return occupied
     }
 
-    private fun makeRound(): Pair<Boolean, SeatMap> {
+    override fun shouldFreeSeat(surroundingOccupancy: Int): Boolean = surroundingOccupancy >= 4
+}
+
+class Part2 : SimulationStrategy {
+    private val directions = (-1..1).flatMap { dy ->
+        (-1..1).map { dx -> dy to dx }
+    }.filter { (dy, dx) -> !(dy == 0 && dx == 0) }
+
+    override fun surroundingOccupancy(seatMap: SeatMap, row: Int, column: Int): Int {
+        val sightOfSeats = directions.map { (dy, dx) ->
+            generateSequence(row to column) { (y, x) -> y + dy to x + dx }
+                .drop(1) // the first element is the square itself
+                .takeWhile { (y, x) -> y in seatMap.rows && x in seatMap.columns } //stay within the grid
+                .map { (y, x) -> seatMap.grid[y][x] } //what do we see there?
+                .firstOrNull { !it.isFloor } //we don't see through objects
+        }
+        return sightOfSeats.count { it?.isOccupied ?: false } //count the number of occupied seats we see
+    }
+
+    override fun shouldFreeSeat(surroundingOccupancy: Int): Boolean = surroundingOccupancy >= 5
+}
+
+class SeatMap(val grid: Array<CharArray>) {
+    internal val maxRows = grid.size
+    internal val maxColumns = grid.first().size
+    internal val rows = 0 until maxRows
+    internal val columns = 0 until maxColumns
+    override fun toString() = grid.joinToString("\n") { row -> row.joinToString("") }
+
+    private fun Array<CharArray>.copy() = Array(size) { row -> this[row].copyOf() }
+
+    private fun makeRound(simulationStrategy: SimulationStrategy): Pair<Boolean, SeatMap> {
         val newGrid = grid.copy()
         var changed = false
         for (row in rows) {
             for (column in columns) {
                 val square = grid[row][column]
-                val occupiedAdjacents = occupiedAdjacent(row, column)
+                val surroundingOccupancy = simulationStrategy.surroundingOccupancy(this, row, column)
                 when {
-                    square == SEAT_EMPTY && occupiedAdjacents == 0 -> {
+                    square == SEAT_EMPTY && surroundingOccupancy == 0 -> {
                         newGrid[row][column] = SEAT_OCCUPIED
                         changed = true
                     }
-                    square == SEAT_OCCUPIED && occupiedAdjacents >= 4 -> {
+                    square == SEAT_OCCUPIED && simulationStrategy.shouldFreeSeat(surroundingOccupancy) -> {
                         newGrid[row][column] = SEAT_EMPTY
                         changed = true
                     }
@@ -52,28 +82,31 @@ data class SeatMap(val grid: Array<CharArray>) {
         return changed to SeatMap(newGrid)
     }
 
-    fun simulate(): SeatMap {
-        val stableGrid = generateSequence(true to this) { (changed, newSeatMap) -> newSeatMap.makeRound() }
+    fun simulate(simulationStrategy: SimulationStrategy): SeatMap {
+        return generateSequence(true to this) { (_, newSeatMap) -> newSeatMap.makeRound(simulationStrategy) }
             .takeWhile { (changed, _) -> changed }
             .last().second
-        return stableGrid
     }
 
     fun occupiedSeats(): Int = grid.sumOf { row -> row.count { it == SEAT_OCCUPIED } }
+
+    companion object {
+        fun read(filename: String) = classpathFile(filename).readLines()
+            .map { line -> line.toCharArray() }
+            .let { SeatMap(it.toTypedArray()) }
+    }
 }
 
 object Day11 {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        val input = classpathFile("input.txt").readLines()
-            .map { line -> line.toCharArray() }
-            .let { SeatMap(it.toTypedArray()) }
+        val input = SeatMap.read("input.txt")
 
-        val finalGrid = input.simulate()
-        println(finalGrid)
-        val occupiedSeats = finalGrid.occupiedSeats()
-        println("Occupied seats in grid: $occupiedSeats")
+        val occupiedSeatsPart1 = input.simulate(Part1()).occupiedSeats()
+        println("Occupied seats in grid part 1: $occupiedSeatsPart1")
+
+        val occupiedSeatsPart2 = input.simulate(Part2()).occupiedSeats()
+        println("Occupied seats in grid part 2: $occupiedSeatsPart2")
     }
-
 }
