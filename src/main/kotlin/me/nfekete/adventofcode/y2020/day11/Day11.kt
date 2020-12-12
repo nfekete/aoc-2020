@@ -41,13 +41,10 @@ class Part2 : SimulationStrategy {
 }
 
 class SeatMap(val grid: Array<CharArray>) {
-    internal val maxRows = grid.size
-    internal val maxColumns = grid.first().size
-    internal val rows = 0 until maxRows
-    internal val columns = 0 until maxColumns
-    override fun toString() = grid.joinToString("\n") { row -> row.joinToString("") }
+    internal val rows = grid.indices
+    internal val columns = grid.first().indices
 
-    private fun Array<CharArray>.copy() = Array(size) { row -> this[row].copyOf() }
+    override fun toString() = grid.joinToString("\n") { row -> row.joinToString("") }
 
     private fun makeRound(simulationStrategy: SimulationStrategy): Pair<Boolean, SeatMap> = rows.map { row ->
         columns.map { column ->
@@ -67,7 +64,7 @@ class SeatMap(val grid: Array<CharArray>) {
             .last().second
     }
 
-    fun occupiedSeats(): Int = grid.sumOf { row -> row.count { it == SEAT_OCCUPIED } }
+    val occupiedSeats: Int get() = grid.sumOf { row -> row.count { it == SEAT_OCCUPIED } }
 
     companion object {
         fun read(filename: String) = classpathFile(filename).readLines()
@@ -82,10 +79,10 @@ object Day11 {
     fun main(args: Array<String>) {
         val input = SeatMap.read("input.txt")
 
-        val occupiedSeatsPart1 = input.simulate(Part1()).occupiedSeats()
+        val occupiedSeatsPart1 = input.simulate(Part1()).occupiedSeats
         println("Occupied seats in grid part 1: $occupiedSeatsPart1")
 
-        val occupiedSeatsPart2 = input.simulate(Part2()).occupiedSeats()
+        val occupiedSeatsPart2 = input.simulate(Part2()).occupiedSeats
         println("Occupied seats in grid part 2: $occupiedSeatsPart2")
     }
 }
