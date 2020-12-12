@@ -21,28 +21,69 @@ sealed class Turn(val degrees: Int) : Instruction()
 class Left(degrees: Int) : Turn(360 - degrees)
 class Right(degrees: Int) : Turn(degrees)
 
-data class Position(val x: Int, val y: Int, val heading: Heading) {
-    private fun move(amount: Int, direction: Heading): Position =
-        copy(x = x + direction.x * amount, y = y + direction.y * amount)
+interface Coords {
+    val x: Int
+    val y: Int
+    operator fun component1() = x
+    operator fun component2() = y
+}
 
-    private fun turn(turn: Turn): Position {
-        assert(turn.degrees % 90 == 0) { "Only right angles allowed" }
-        val currentDirectionIndex = heading.ordinal
-        val quarterTurns = turn.degrees / 90
-        val nrOfHeadings = Heading.values().size
-        val newHeading = Heading.values()[(nrOfHeadings + currentDirectionIndex + quarterTurns) % nrOfHeadings]
-        return copy(heading = newHeading)
-    }
+data class PositionAndHeading(override val x: Int, override val y: Int, val heading: Heading) : Coords
+data class PositionAndWaypoint(override val x: Int, override val y: Int, val wpx: Int, val wpy: Int) : Coords
 
-    fun update(instruction: Instruction): Position =
+interface Interpreter<S> {
+    fun move(state: S, amount: Int, direction: Heading): S
+    fun forward(state: S, amount: Int): S
+    fun turn(state: S, turn: Turn): S
+    fun update(state: S, instruction: Instruction): S =
         when (instruction) {
-            is North -> move(instruction.amount, Heading.N)
-            is East -> move(instruction.amount, Heading.E)
-            is West -> move(instruction.amount, Heading.W)
-            is South -> move(instruction.amount, Heading.S)
-            is Forward -> move(instruction.amount, heading)
-            is Left -> turn(instruction)
-            is Right -> turn(instruction)
+            is North -> move(state, instruction.amount, Heading.N)
+            is East -> move(state, instruction.amount, Heading.E)
+            is West -> move(state, instruction.amount, Heading.W)
+            is South -> move(state, instruction.amount, Heading.S)
+            is Forward -> forward(state, instruction.amount)
+            is Turn -> turn(state, instruction)
+        }
+
+    fun run(initialState: S, instructions: List<Instruction>): S =
+        instructions.fold(initialState, { state, instruction -> update(state, instruction) })
+}
+
+class Part1 : Interpreter<PositionAndHeading> {
+    override fun move(state: PositionAndHeading, amount: Int, direction: Heading): PositionAndHeading =
+        state.copy(x = state.x + direction.x * amount, y = state.y + direction.y * amount)
+
+    override fun forward(position: PositionAndHeading, amount: Int): PositionAndHeading =
+        position.copy(x = position.x + position.heading.x * amount, y = position.y + position.heading.y * amount)
+
+    override fun turn(position: PositionAndHeading, turn: Turn): PositionAndHeading {
+        assert(turn.degrees % 90 == 0) { "Only right angles allowed" }
+        val nrOfHeadings = Heading.values().size
+        return position.copy(heading = Heading.values()[(nrOfHeadings + position.heading.ordinal + turn.degrees / 90) % nrOfHeadings])
+    }
+}
+
+class Part2 : Interpreter<PositionAndWaypoint> {
+    override fun move(state: PositionAndWaypoint, amount: Int, direction: Heading) =
+        state.copy(
+            wpx = state.wpx + direction.x * amount,
+            wpy = state.wpy + direction.y * amount
+        )
+
+    override fun forward(state: PositionAndWaypoint, amount: Int) =
+        state.copy(
+            x = state.x + state.wpx * amount,
+            y = state.y + state.wpy * amount
+        )
+
+    private val PositionAndWaypoint.rotate90cw get() = copy(wpx = wpy, wpy = -wpx)
+    override fun turn(state: PositionAndWaypoint, turn: Turn): PositionAndWaypoint =
+        when ((360 + turn.degrees) % 360) {
+            0 -> state
+            90 -> state.rotate90cw
+            180 -> state.rotate90cw.rotate90cw
+            270 -> state.rotate90cw.rotate90cw.rotate90cw
+            else -> throw IllegalArgumentException("Turn angle (${turn.degrees}) not multiple of 90")
         }
 }
 
@@ -51,8 +92,11 @@ object Day12 {
     @JvmStatic
     fun main(args: Array<String>) {
         val input = classpathFile("input.txt").readLines().map { it.parseInstruction() }.toList()
-        val (x, y) = input.fold(Position(0, 0, Heading.E), { position, instruction -> position.update(instruction) })
-        println("New position: x=$x, y=$y, Manhattan distance=${x.absoluteValue + y.absoluteValue}")
+        val print: (Coords) -> Unit = { (x, y) ->
+            println("New position: x=$x, y=$y, Manhattan distance=${x.absoluteValue + y.absoluteValue}")
+        }
+        Part1().run(PositionAndHeading(0, 0, Heading.E), input).let(print)
+        Part2().run(PositionAndWaypoint(0, 0, 10, 1), input).let(print)
     }
 
     private fun String.parseInstruction(): Instruction {
