@@ -9,3 +9,7 @@ inline fun <reified T : Any> T.classpathFile(path: String) =
             javaClass.getResourceAsStream(path)
         )
     )
+
+fun String.translate(vararg chars: Pair<Char, Char>) = chars.toMap().let { map ->
+    this.map { map.getOrDefault(it, it) }.joinToString("")
+}
