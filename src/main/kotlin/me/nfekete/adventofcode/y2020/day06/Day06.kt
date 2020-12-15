@@ -7,7 +7,7 @@ object Day06 {
     @JvmStatic
     fun main(args: Array<String>) {
         val input = classpathFile("input.txt").readLines().asSequence()
-            .chunkBy { it.isEmpty() }.toList()
+            .chunkBy { it.isBlank() }.toList()
         val sumYes = input
             .map { group ->
                 group.flatMap { personYesAnswers ->
