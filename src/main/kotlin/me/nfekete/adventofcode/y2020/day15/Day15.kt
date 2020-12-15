@@ -11,21 +11,23 @@ object Day15 {
     @JvmStatic
     fun main(args: Array<String>) {
         val input = classpathFile("input.txt").readLine().split(",").map(String::toInt)
-        part1(input)
-        part2(input)
+        part1(input).let(::println)
+        part2(input).let(::println)
     }
 
     fun part1(input: List<Int>): Int = iterate(input, 2020)
-    fun part2(input: List<Int>): Int = iterate(input, 30000000)
+    fun part2(input: List<Int>): Int = iterate(input, 30_000_000)
 
     private fun iterate(input: List<Int>, rounds: Int): Int {
         val map = input
             .mapIndexed { index, num -> num to First(index) }
-            .toMap(LinkedHashMap<Int, Occurrence>())
+            .toMap(mutableMapOf<Int, Occurrence>())
+
         var lastSpoken: Int = input.last()
+        var occurrenceForLast = map[lastSpoken]!!
         var round = map.size
         while (round < rounds) {
-            val nextToSpeak = when (val occurrenceForLast = map[lastSpoken]!!) {
+            val nextToSpeak = when (occurrenceForLast) {
                 is First -> 0
                 is Repeated -> occurrenceForLast.lastRound - occurrenceForLast.roundBefore
             }
@@ -33,8 +35,8 @@ object Day15 {
             map[nextToSpeak] = newEntry
             round++
             lastSpoken = nextToSpeak
+            occurrenceForLast = newEntry
         }
-        println(lastSpoken)
         return lastSpoken
     }
 
