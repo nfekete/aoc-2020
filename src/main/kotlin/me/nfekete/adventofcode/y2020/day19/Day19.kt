@@ -5,48 +5,58 @@ import me.nfekete.adventofcode.y2020.common.classpathFile
 import me.nfekete.adventofcode.y2020.common.splitByDelimiter
 
 sealed class Rule
-data class RuleSequence(val list: List<RuleReference>) : Rule()
-data class OrRule(val alternates: List<RuleSequence>) : Rule()
+data class RuleSequence(val list: List<Rule>) : Rule()
+data class OrRule(val alternates: List<Rule>) : Rule()
 data class RuleReference(val ruleNumber: Int) : Rule()
 data class TerminalRule(val char: Char) : Rule()
 
-fun String.parseRule(): Pair<Int, Rule> {
-    val (ruleNumber, ruleDescription) = splitByDelimiter(": ")
-    val rule = when {
-        ruleDescription.startsWith("\"") -> TerminalRule(ruleDescription[1])
-        else -> ruleDescription.split(" | ").map { ruleSequenceStr ->
-            ruleSequenceStr.split(" ").map(String::toInt).map(::RuleReference).let(::RuleSequence)
-        }.let(::OrRule)
+data class RuleSet(val rules: Map<Int, Rule>) {
+    private fun match(input: String): Boolean = consume(rules[0]!!, input).contains("")
+    private fun consume(rule: Rule, input: String): Sequence<String> {
+        return when (rule) {
+            is RuleSequence -> rule.list.fold(sequenceOf(input)) { inputs, subRule ->
+                inputs.flatMap { input -> consume(subRule, input) }
+            }
+            is OrRule -> rule.alternates.asSequence().flatMap { subRule -> consume(subRule, input) }
+            is RuleReference -> consume(rules[rule.ruleNumber]!!, input)
+            is TerminalRule -> when {
+                input.startsWith(rule.char) -> sequenceOf(input.substring(1))
+                else -> emptySequence()
+            }
+        }
     }
-    return ruleNumber.toInt() to rule
-}
 
-fun List<String>.parseRules() = map { it.parseRule() }.toMap()
-fun Map<Int, Rule>.expandToRegexString(rule: Rule): String = when (rule) {
-    is RuleSequence -> rule.list.joinToString("") { this.expandToRegexString(it) }
-    is OrRule -> rule.alternates.joinToString("|", "(", ")") { this.expandToRegexString(it) }
-    is RuleReference -> expandToRegexString(get(rule.ruleNumber)!!)
-    is TerminalRule -> "${rule.char}"
-}
+    fun countMatches(input: List<String>) = input.count(::match)
 
-fun Map<Int, Rule>.toRegex(): Regex {
-    val regexp = this.expandToRegexString(get(0)!!)
-    return regexp.toRegex()
+    companion object {
+        fun from(list: List<String>) = list.map { it.parseRule() }.toMap().run(::RuleSet)
+
+        private fun String.parseRule(): Pair<Int, Rule> {
+            val (ruleNumber, ruleDescription) = splitByDelimiter(": ")
+            val rule = when {
+                ruleDescription.startsWith("\"") -> TerminalRule(ruleDescription[1])
+                else -> ruleDescription.split(" | ").map { ruleSequenceStr ->
+                    ruleSequenceStr.split(" ").map(String::toInt).map(::RuleReference).let(::RuleSequence)
+                }.let(::OrRule)
+            }
+            return ruleNumber.toInt() to rule
+        }
+    }
 }
 
 object Day19 {
 
-    private fun part1(rules: Map<Int, Rule>, input: List<String>) =
-        rules.toRegex().let { regex -> input.filter { regex.matches(it) } }.count()
-
     @JvmStatic
     fun main(args: Array<String>) {
         classpathFile("input.txt").lineSequence().chunkBy { it.isBlank() }.iterator().let {
-            val rules = it.next().parseRules()
+            val stringRules = it.next()
             val input = it.next()
 
-            part1(rules, input).let(::println)
+            RuleSet.from(stringRules).countMatches(input).let(::println)
+            RuleSet.from(stringRules.toMutableList().apply {
+                add("8: 42 | 42 8")
+                add("11: 42 31 | 42 11 31")
+            }).countMatches(input).let(::println)
         }
     }
-
 }
