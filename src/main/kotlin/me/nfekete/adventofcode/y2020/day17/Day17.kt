@@ -1,19 +1,7 @@
 package me.nfekete.adventofcode.y2020.day17
 
 import me.nfekete.adventofcode.y2020.common.classpathFile
-
-fun <R> crossProduct(ra: IntRange, rb: IntRange, rc: IntRange, fn: (Int, Int, Int) -> R) =
-    ra.flatMap { a -> rb.flatMap { b -> rc.map { c -> fn(a, b, c) } } }
-
-fun <R> crossProduct(ra: IntRange, rb: IntRange, rc: IntRange, rd: IntRange, fn: (Int, Int, Int, Int) -> R) =
-    ra.flatMap { a -> rb.flatMap { b -> rc.flatMap { c -> rd.map { d -> fn(a, b, c, d) } } } }
-
-fun <A, B, C, R> crossProduct(sa: Sequence<A>, sb: Sequence<B>, sc: Sequence<C>, fn: (A, B, C) -> R) =
-    sa.flatMap { a -> sb.flatMap { b -> sc.map { c -> fn(a, b, c) } } }
-
-fun <A, B, C, D, R> crossProduct(
-    sa: Sequence<A>, sb: Sequence<B>, sc: Sequence<C>, sd: Sequence<D>, fn: (A, B, C, D) -> R
-) = sa.flatMap { a -> sb.flatMap { b -> sc.flatMap { c -> sd.map { d -> fn(a, b, c, d) } } } }
+import me.nfekete.adventofcode.y2020.common.crossProduct
 
 data class Point2D(val x: Int, val y: Int) {
     fun extend(z: Int) = Point3(x, y, z)

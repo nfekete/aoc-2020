@@ -37,3 +37,22 @@ fun String.splitByDelimiter(delimiter: String) =
 
 fun <A, B, C> Pair<A, B>.map1(fn: (A) -> C): Pair<C, B> = let { (a, b) -> fn(a) to b }
 fun <A, B, C> Pair<A, B>.map2(fn: (B) -> C): Pair<A, C> = let { (a, b) -> a to fn(b) }
+
+fun <R> crossProduct(ra: IntRange, rb: IntRange, fn: (Int, Int) -> R) =
+    ra.flatMap { a -> rb.map { b -> fn(a, b) } }
+
+fun <R> crossProduct(ra: IntRange, rb: IntRange, rc: IntRange, fn: (Int, Int, Int) -> R) =
+    ra.flatMap { a -> rb.flatMap { b -> rc.map { c -> fn(a, b, c) } } }
+
+fun <R> crossProduct(ra: IntRange, rb: IntRange, rc: IntRange, rd: IntRange, fn: (Int, Int, Int, Int) -> R) =
+    ra.flatMap { a -> rb.flatMap { b -> rc.flatMap { c -> rd.map { d -> fn(a, b, c, d) } } } }
+
+fun <A, B, R> crossProduct(sa: Sequence<A>, sb: Sequence<B>, fn: (A, B) -> R) =
+    sa.flatMap { a -> sb.map { b -> fn(a, b) } }
+
+fun <A, B, C, R> crossProduct(sa: Sequence<A>, sb: Sequence<B>, sc: Sequence<C>, fn: (A, B, C) -> R) =
+    sa.flatMap { a -> sb.flatMap { b -> sc.map { c -> fn(a, b, c) } } }
+
+fun <A, B, C, D, R> crossProduct(
+    sa: Sequence<A>, sb: Sequence<B>, sc: Sequence<C>, sd: Sequence<D>, fn: (A, B, C, D) -> R
+) = sa.flatMap { a -> sb.flatMap { b -> sc.flatMap { c -> sd.map { d -> fn(a, b, c, d) } } } }
