@@ -13,4 +13,10 @@ internal class Day20KtTest: FunSpec({
         1.flip(10) shouldBe 512
         512.flip(10) shouldBe 1
     }
+    test("List<Boolean>.toInt() should convert Boolean array to Int") {
+        listOf(false, false).toInt() shouldBe 0
+        listOf(false, true).toInt() shouldBe 1
+        listOf(true, false).toInt() shouldBe 2
+        listOf(true, true).toInt() shouldBe 3
+    }
 })

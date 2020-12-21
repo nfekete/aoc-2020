@@ -38,6 +38,7 @@ fun String.splitByDelimiter(delimiter: String) =
 fun <A, B, C> Pair<A, B>.map1(fn: (A) -> C): Pair<C, B> = let { (a, b) -> fn(a) to b }
 fun <A, B, C> Pair<A, B>.map2(fn: (B) -> C): Pair<A, C> = let { (a, b) -> a to fn(b) }
 
+fun Iterable<Long>.product() = fold(1L) { acc, i -> acc * i }
 fun <R> crossProduct(ra: IntRange, rb: IntRange, fn: (Int, Int) -> R) =
     ra.flatMap { a -> rb.map { b -> fn(a, b) } }
 
