@@ -40,6 +40,8 @@ fun <A, B, C> Pair<A, B>.map2(fn: (B) -> C): Pair<A, C> = let { (a, b) -> a to f
 val <A, B> Pair<A, B>.swapped get() = second to first
 
 fun Iterable<Long>.product() = fold(1L) { acc, i -> acc * i }
+fun Sequence<Long>.product() = fold(1L) { acc, i -> acc * i }
+
 fun <R> crossProduct(ra: IntRange, rb: IntRange, fn: (Int, Int) -> R) =
     ra.flatMap { a -> rb.map { b -> fn(a, b) } }
 
